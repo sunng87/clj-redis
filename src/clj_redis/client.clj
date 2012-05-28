@@ -109,7 +109,7 @@
   (lease p (fn [^Jedis j] (.append j k v))))
 
 (defn getrange [p ^String k ^Integer start ^Integer end]
-  (lease p (fn [^Jedis j] (.substring j k start end))))
+  (lease p (fn [^Jedis j] (.substr j k start end))))
 
 (defn setnx [p ^String k ^String v]
   (lease p (fn [^Jedis j] (.setnx j k v))))
@@ -154,12 +154,16 @@
         (seq pair)))))
 
 (defn lrange
-  [p k ^Integer start ^Integer end]
+  [p ^String k ^Integer start ^Integer end]
   (lease p (fn [^Jedis j] (seq (.lrange j k start end)))))
 
 (defn ltrim
-  [p k ^Integer start ^Integer end]
+  [p ^String k ^Integer start ^Integer end]
   (lease p (fn [^Jedis j] (.ltrim j k start end))))
+
+(defn lrem
+  [p ^String k ^Integer c ^String v]
+  (lease p (fn [^Jedis j] (.lrem j k c v))))
 
 ; Sets
 
@@ -185,7 +189,7 @@
   (lease p (fn [^Jedis j] (.srandmember j k))))
 
 (defn smove [p ^String k ^String d ^String m]
-  (lease p (fn [^Jedis j] (.smembers j k d m))))
+  (lease p (fn [^Jedis j] (.smove j k d m))))
 
 
 ; Sorted sets
@@ -216,9 +220,9 @@
 
 (defn zrangebyscore-withscore
   ([p ^String k ^Double min ^Double max]
-    (lease p (fn [^Jedis j] (seq (.zrangeByScoreWithScore j k min max)))))
+    (lease p (fn [^Jedis j] (seq (.zrangeByScoreWithScores j k min max)))))
   ([p ^String k ^Double min ^Double max ^Integer offset ^Integer count]
-    (lease p (fn [^Jedis j] (seq (.zrangeByScoreWithScore j k min max offset count))))))
+    (lease p (fn [^Jedis j] (seq (.zrangeByScoreWithScores j k min max offset count))))))
 
 (defn zrange [p ^String k ^Integer start ^Integer end]
   (lease p (fn [^Jedis j] (seq (.zrange j k start end)))))
@@ -256,7 +260,7 @@
 (defn hset [p ^String k ^String f ^String v]
   (lease p (fn [^Jedis j] (.hset j k f v))))
 
-(defn hmset [p ^String k h]
+(defn hmset [p ^String k ^java.util.Map h]
   (lease p (fn [^Jedis j] (.hmset j k h))))
 
 (defn hsetnx [p ^String k ^String f ^String v]
