@@ -9,17 +9,18 @@
 
 (defn init
   ([] (init {}))
-  ([{:keys [url timeout test-on-borrow] :as opts}]
+  ([{:keys [url host port timeout test-on-borrow db] :as opts}]
      (let [uri (URI. (or url local-url))
            tout (or timeout 2000)
-           host (.getHost uri)
-           port (if (pos? (.getPort uri)) (.getPort uri) 6379)
+           host (or host (.getHost uri))
+           port (or port (if (pos? (.getPort uri)) (.getPort uri) 6379))
            uinfo (.getUserInfo uri)
            pass (and uinfo (last (str/split uinfo #":")))
-           config (JedisPoolConfig.)]
+           config (JedisPoolConfig.)
+           db (or db 0)]
        (when test-on-borrow
          (.setTestOnBorrow config test-on-borrow))
-       (JedisPool. config host port tout pass)))
+       (JedisPool. config host port tout pass db)))
   ([k1 v1 & {:as opts}]
      (init (assoc opts k1 v1))))
 
@@ -120,19 +121,19 @@
 
 ; Lists
 
-(defn lpush [p ^String k ^String v]
-  (lease p (fn [^Jedis j] (.lpush j k v))))
+(defn lpush [p ^String k & v]
+  (lease p (fn [^Jedis j] (.lpush j k ^"[Ljava.lang.String;" (into-array String v)))))
 
-(defn rpush [p ^String k ^String v]
-  (lease p (fn [^Jedis j] (.rpush j k v))))
+(defn rpush [p ^String k & v]
+  (lease p (fn [^Jedis j] (.rpush j k ^"[Ljava.lang.String;" (into-array String v)))))
 
-(defn lset [p ^String k ^Integer i ^String v]
+(defn lset [p ^String k ^Long i ^String v]
   (lease p (fn [^Jedis j] (.lset j k i v))))
 
 (defn llen [p ^String k]
   (lease p (fn [^Jedis j] (.llen j k))))
 
-(defn lindex [p ^String k ^Integer i]
+(defn lindex [p ^String k ^Long i]
   (lease p (fn [^Jedis j] (.lindex j k i))))
 
 (defn lpop [p ^String k]
@@ -154,24 +155,24 @@
         (seq pair)))))
 
 (defn lrange
-  [p ^String k ^Integer start ^Integer end]
+  [p ^String k ^Long start ^Long end]
   (lease p (fn [^Jedis j] (seq (.lrange j k start end)))))
 
 (defn ltrim
-  [p ^String k ^Integer start ^Integer end]
+  [p ^String k ^Long start ^Long end]
   (lease p (fn [^Jedis j] (.ltrim j k start end))))
 
 (defn lrem
-  [p ^String k ^Integer c ^String v]
+  [p ^String k ^Long c ^String v]
   (lease p (fn [^Jedis j] (.lrem j k c v))))
 
 ; Sets
 
-(defn sadd [p ^String k ^String m]
-  (lease p (fn [^Jedis j] (.sadd j k m))))
+(defn sadd [p ^String k & m]
+  (lease p (fn [^Jedis j] (.sadd j k ^"[Ljava.lang.String;" (into-array String m)))))
 
-(defn srem [p ^String k ^String m]
-  (lease p (fn [^Jedis j] (.srem j k m))))
+(defn srem [p ^String k & m]
+  (lease p (fn [^Jedis j] (.srem j k ^"[Ljava.lang.String;" (into-array String m)))))
 
 (defn spop [p ^String k]
   (lease p (fn [^Jedis j] (.spop j k))))
@@ -224,19 +225,19 @@
   ([p ^String k ^Double min ^Double max ^Integer offset ^Integer count]
     (lease p (fn [^Jedis j] (seq (.zrangeByScoreWithScores j k min max offset count))))))
 
-(defn zrange [p ^String k ^Integer start ^Integer end]
+(defn zrange [p ^String k ^Long start ^Long end]
   (lease p (fn [^Jedis j] (seq (.zrange j k start end)))))
 
-(defn zrevrange [p ^String k ^Integer start ^Integer end]
+(defn zrevrange [p ^String k ^Long start ^Long end]
   (lease p (fn [^Jedis j] (seq (.zrevrange j k start end)))))
 
 (defn zincrby [p ^String k ^Double s ^String m]
   (lease p (fn [^Jedis j] (.zincrby j k s m))))
 
-(defn zrem [p ^String k ^String m]
-  (lease p (fn [^Jedis j] (.zrem j k m))))
+(defn zrem [p ^String k & m]
+  (lease p (fn [^Jedis j] (.zrem j k ^"[Ljava.lang.String;" (into-array String m)))))
 
-(defn zremrangebyrank [p ^String k ^Integer start ^Integer end]
+(defn zremrangebyrank [p ^String k ^Long start ^Long end]
   (lease p (fn [^Jedis j] (.zremrangeByRank j k start end))))
 
 (defn zremrangebyscore [p ^String k ^Double start ^Double end]
@@ -272,8 +273,8 @@
 (defn hexists [p ^String k ^String f]
   (lease p (fn [^Jedis j] (.hexists j k f))))
 
-(defn hdel [p ^String k ^String f]
-  (lease p (fn [^Jedis j] (.hdel j k f))))
+(defn hdel [p ^String k & f]
+  (lease p (fn [^Jedis j] (.hdel j k ^"[Ljava.lang.String;" (into-array String f)))))
 
 (defn hlen [p ^String k]
   (lease p (fn [^Jedis j] (.hlen j k))))
