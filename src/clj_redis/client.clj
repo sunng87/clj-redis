@@ -1,6 +1,7 @@
 (ns clj-redis.client
   (:import java.net.URI)
   (:import (redis.clients.jedis Jedis JedisPool JedisPoolConfig JedisPubSub))
+  (:import (redis.clients.jedis BinaryClient$LIST_POSITION))
   (:require [clojure.string :as str])
   (:refer-clojure :exclude [get set keys type]))
 
@@ -112,12 +113,23 @@
 (defn getrange [p ^String k ^Integer start ^Integer end]
   (lease p (fn [^Jedis j] (.substr j k start end))))
 
+(defn setrange [p ^String k ^Long offset ^String value]
+  (lease p (fn [^Jedis j] (.setrange j k offset value))))
+
 (defn setnx [p ^String k ^String v]
   (lease p (fn [^Jedis j] (.setnx j k v))))
 
 (defn setex [p ^String k ^Integer s ^String v]
   (lease p (fn [^Jedis j] (.setex j k s v))))
 
+(defn getbit [p ^String k ^Long offset]
+  (lease p (fn [^Jedis j] (.getbit j k offset))))
+
+(defn setbit [p ^String k ^Long offset ^Boolean value]
+  (lease p (fn [^Jedis j] (.setbit j k offset value))))
+
+(defn strlen [p ^String k]
+  (lease p (fn [^Jedis j] (.strlen j k))))
 
 ; Lists
 
@@ -166,6 +178,21 @@
   [p ^String k ^Long c ^String v]
   (lease p (fn [^Jedis j] (.lrem j k c v))))
 
+(defn brpoplpush [p ^String src ^String dest ^Integer t]
+  (lease p (fn [^Jedis j] (.brpoplpush j src dest t))))
+
+(defonce position {:after BinaryClient$LIST_POSITION/AFTER
+                   :before BinaryClient$LIST_POSITION/BEFORE})
+
+(defn linsert [p ^String k pos ^String pivot ^String v]
+  (lease p (fn [^Jedis j] (.linsert j k ^BinaryClient$LIST_POSITION (position pos) pivot v))))
+
+(defn lpushx [p ^String k ^String v]
+  (lease p (fn [^Jedis j] (.lpushx j k v))))
+
+(defn rpushx [p ^String k ^String v]
+  (lease p (fn [^Jedis j] (.rpushx j k v))))
+
 ; Sets
 
 (defn sadd [p ^String k & m]
@@ -191,6 +218,24 @@
 
 (defn smove [p ^String k ^String d ^String m]
   (lease p (fn [^Jedis j] (.smove j k d m))))
+
+(defn sdiff [p & keys]
+  (lease p (fn [^Jedis j] (.sdiff j ^"[Ljava.lang.String;" (into-array String keys)))))
+
+(defn sdiffstore [p ^String dest & keys]
+  (lease p (fn [^Jedis j] (.sdiffstore j dest ^"[Ljava.lang.String;" (into-array String keys)))))
+
+(defn sinter [p & keys]
+  (lease p (fn [^Jedis j] (.sinter j ^"[Ljava.lang.String;" (into-array String keys)))))
+
+(defn sinterstore [p ^String d & keys]
+  (lease p (fn [^Jedis j] (.sinterstore j d ^"[Ljava.lang.String;" (into-array String keys)))))
+
+(defn sunion [p & keys]
+  (lease p (fn [^Jedis j] (.sunion j ^"[Ljava.lang.String;" (into-array String keys)))))
+
+(defn sunionstore [p ^String d & keys]
+  (lease p (fn [^Jedis j] (.sunionstore j d ^"[Ljava.lang.String;" (into-array String keys)))))
 
 
 ; Sorted sets
@@ -249,6 +294,17 @@
 (defn zunionstore [p ^String d k]
   (lease p (fn [^Jedis j] (.zunionstore j d ^"[Ljava.lang.String;" (into-array k)))))
 
+(defn zrevrangebyscore
+  ([p ^String k ^Double max ^Double min]
+     (lease p (fn [^Jedis j] (seq (.zrevrangeByScore j k max min)))))
+  ([p ^String k ^Double max ^Double min ^Integer offset ^Integer count]
+     (lease p (fn [^Jedis j] (seq (.zrevrangeByScore j k max min offset count))))))
+
+(defn zrevrangebyscore-withscore
+  ([p ^String k ^Double max ^Double min]
+     (lease p (fn [^Jedis j] (seq (.zrevrangeByScoreWithScores j k max min)))))
+  ([p ^String k ^Double max ^Double min ^Integer offset ^Integer count]
+     (lease p (fn [^Jedis j] (seq (.zrevrangeByScoreWithScores j k max min offset count))))))
 
 ; Hashes
 
