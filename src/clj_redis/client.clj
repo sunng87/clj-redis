@@ -1,6 +1,6 @@
 (ns clj-redis.client
   (:import java.net.URI)
-  (:import (redis.clients.jedis Jedis JedisPool JedisPoolConfig JedisPubSub))
+  (:import (redis.clients.jedis Jedis JedisPool JedisPoolConfig JedisPubSub Pipeline))
   (:import (redis.clients.jedis BinaryClient$LIST_POSITION))
   (:require [clojure.string :as str])
   (:refer-clojure :exclude [get set keys type]))
@@ -357,3 +357,12 @@
                   (onMessage [ch msg] (handler ch msg)))]
     (lease p (fn [^Jedis j]
       (.subscribe j pub-sub ^"[Ljava.lang.String;" (into-array chs))))))
+
+(defmacro with-pipeline [jedis-pool argvec & body]
+  `(lease ~jedis-pool
+          (fn [^Jedis j#]
+            (let [pipeline# (.pipelined j#)
+                  results# ((fn ~argvec ~@body) pipeline#)]
+              (.sync ^Pipeline pipeline#)
+              results#))))
+
