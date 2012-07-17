@@ -1,4 +1,4 @@
-(defproject org.clojars.sunng/clj-redis "0.0.14-SNAPSHOT"
+(defproject org.clojars.sunng/clj-redis "0.0.15-SNAPSHOT"
   :description "Clojure Redis client library"
   :url "https://github.com/sunng87/clj-redis"
   :dependencies [[org.clojure/clojure "1.3.0"]

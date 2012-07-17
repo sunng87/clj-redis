@@ -362,7 +362,7 @@
   `(lease ~jedis-pool
           (fn [^Jedis j#]
             (let [pipeline# (.pipelined j#)
-                  results# ((fn ~argvec ~@body) pipeline#)]
+                  results# ((fn ~argvec ~@body) ^Pipeline pipeline#)]
               (.sync ^Pipeline pipeline#)
               results#))))
 
