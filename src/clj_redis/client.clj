@@ -1,6 +1,6 @@
 (ns clj-redis.client
   (:import java.net.URI)
-  (:import (redis.clients.jedis Jedis JedisPool JedisPoolConfig JedisPubSub Pipeline))
+  (:import (redis.clients.jedis Jedis JedisPool JedisPoolConfig JedisPubSub Pipeline Response))
   (:import (redis.clients.jedis BinaryClient$LIST_POSITION))
   (:require [clojure.string :as str])
   (:refer-clojure :exclude [get set keys type]))
@@ -364,5 +364,5 @@
             (let [pipeline# (.pipelined j#)
                   results# ((fn ~argvec ~@body) ^Pipeline pipeline#)]
               (.sync ^Pipeline pipeline#)
-              results#))))
+              (doall (map #(.get ^Response %) results#))))))
 
