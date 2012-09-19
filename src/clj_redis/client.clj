@@ -364,5 +364,13 @@
             (let [pipeline# (.pipelined j#)
                   results# ((fn ~argvec ~@body) ^Pipeline pipeline#)]
               (.sync ^Pipeline pipeline#)
-              (doall (map #(.get ^Response %) results#))))))
+              (cond
+               (instance? Response results#)
+               (.get ^Response results#)
+               
+               (and (sequential? results#)
+                    (every? #(instance? Response %) results#))
+               (doall (map #(.get ^Response %) results#))
+               
+               :else results#)))))
 
