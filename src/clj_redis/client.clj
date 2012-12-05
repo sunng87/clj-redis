@@ -1,6 +1,6 @@
 (ns clj-redis.client
   (:import java.net.URI)
-  (:import (redis.clients.jedis Jedis JedisPool JedisPoolConfig JedisPubSub Pipeline Response))
+  (:import (redis.clients.jedis Jedis JedisPool JedisPoolConfig JedisPubSub Pipeline Response Tuple))
   (:import (redis.clients.jedis BinaryClient$LIST_POSITION))
   (:require [clojure.string :as str])
   (:refer-clojure :exclude [get set keys type]))
@@ -30,7 +30,10 @@
     (try
       (f j)
       (finally
-        (.returnResource p j)))))
+       (.returnResource p j)))))
+
+(defn from-tuple [^Tuple t]
+  [(.getElement t) (.getScore t)])
 
 (defn ping [p]
   (lease p (fn [^Jedis j] (.ping j))))
@@ -266,15 +269,20 @@
 
 (defn zrangebyscore-withscore
   ([p ^String k ^Double min ^Double max]
-    (lease p (fn [^Jedis j] (seq (.zrangeByScoreWithScores j k min max)))))
+     (lease p (fn [^Jedis j] (map from-tuple
+                                 (.zrangeByScoreWithScores j k min max)))))
   ([p ^String k ^Double min ^Double max ^Integer offset ^Integer count]
-    (lease p (fn [^Jedis j] (seq (.zrangeByScoreWithScores j k min max offset count))))))
+     (lease p (fn [^Jedis j] (map from-tuple
+                                 (.zrangeByScoreWithScores j k min max offset count))))))
 
 (defn zrange [p ^String k ^Long start ^Long end]
   (lease p (fn [^Jedis j] (seq (.zrange j k start end)))))
 
 (defn zrevrange [p ^String k ^Long start ^Long end]
   (lease p (fn [^Jedis j] (seq (.zrevrange j k start end)))))
+
+(defn zrevrange-withscore [p ^String k ^Long start ^Long end]
+  (lease p (fn [^Jedis j] (map from-tuple (.zrevrangeWithScores j k start end)))))
 
 (defn zincrby [p ^String k ^Double s ^String m]
   (lease p (fn [^Jedis j] (.zincrby j k s m))))
@@ -302,9 +310,9 @@
 
 (defn zrevrangebyscore-withscore
   ([p ^String k ^Double max ^Double min]
-     (lease p (fn [^Jedis j] (seq (.zrevrangeByScoreWithScores j k max min)))))
+     (lease p (fn [^Jedis j] (map from-tuple (.zrevrangeByScoreWithScores j k max min)))))
   ([p ^String k ^Double max ^Double min ^Integer offset ^Integer count]
-     (lease p (fn [^Jedis j] (seq (.zrevrangeByScoreWithScores j k max min offset count))))))
+     (lease p (fn [^Jedis j] (map from-tuple (.zrevrangeByScoreWithScores j k max min offset count))))))
 
 ; Hashes
 
